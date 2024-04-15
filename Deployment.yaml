@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube-trace-nfs
+  labels:
+    app: kube-trace-nfs
+spec:
+  selector:
+    matchLabels:
+      name: kube-trace-nfs
+  template:
+    metadata:
+      labels:
+        name: kube-trace-nfs
+    spec:
+      initContainers:
+        - name: init-headers
+          image: 4rivappa/bcc-linux-headers:0.1
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+          volumeMounts:
+            - name: lsb-release
+              mountPath: /etc/lsb-release.host
+              readOnly: false
+            - name: os-release
+              mountPath: /etc/os-release.host
+              readOnly: false
+            - name: modules-dir
+              mountPath: /lib/modules
+              readOnly: false
+            - name: modules-host
+              mountPath: /lib/modules.host
+              readOnly: false
+            - name: linux-headers-generated
+              mountPath: /usr/src/
+              readOnly: false
+            - name: boot-host
+              mountPath: /boot.host
+              readOnly: false
+      containers:
+        - name: kube-trace-nfs
+          image: 4rivappa/kube-trace-nfs:0.0.4
+          resources:
+            requests:
+              ephemeral-storage: "2Gi"
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+          volumeMounts:
+            - name: lsb-release
+              mountPath: /etc/lsb-release.host
+              readOnly: false
+            - name: os-release
+              mountPath: /etc/os-release.host
+              readOnly: false
+            - name: modules-dir
+              mountPath: /lib/modules
+              readOnly: false
+            - name: modules-host
+              mountPath: /lib/modules.host
+              readOnly: false
+            - name: linux-headers-generated
+              mountPath: /usr/src/
+              readOnly: false
+            - name: boot-host
+              mountPath: /boot.host
+              readOnly: false
+            - name: debug
+              mountPath: /sys/kernel/debug
+              readOnly: false
+      hostNetwork: true
+      hostPID: true
+      volumes:
+        - name: lsb-release
+          hostPath:
+            path: /etc/lsb-release
+        - name: os-release
+          hostPath:
+            path: /etc/os-release
+        - name: modules-dir
+          hostPath:
+            path: /var/cache/linux-headers/modules_dir
+        - name: linux-headers-generated
+          hostPath:
+            path: /var/cache/linux-headers/generated
+        - name: boot-host
+          hostPath:
+            path: /boot
+        - name: modules-host
+          hostPath:
+            path: /lib/modules
+        - name: debug
+          hostPath:
+            path: /sys/kernel/debug
