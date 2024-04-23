@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: efs-traffic-deployment
+  labels:
+    app: efs-traffic
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: efs-traffic
+  template:
+    metadata:
+      labels:
+        app: efs-traffic
+    spec:
+      containers:
+      - name: efs-traffic
+        image: 4rivappa/efs-traffic:0.1
+        volumeMounts:
+        - name: efs-traffic-persistent-storage
+          mountPath: /data
+      volumes:
+      - name: efs-traffic-persistent-storage
+        persistentVolumeClaim:
+          claimName: efs-traffic-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-traffic-pv-claim
+spec:
+  storageClassName: efs-traffic-sc
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi

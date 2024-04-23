@@ -1,0 +1,19 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: theprimeagen
+  region: us-east-1
+  version: "1.24"
+
+vpc:
+  cidr: 10.0.0.0/16
+  nat:
+    gateway: HighlyAvailable
+
+nodeGroups:
+  - name: theprimeagen-node-group
+    instanceType: t2.medium
+    desiredCapacity: 4
+    privateNetworking: true
+    volumeSize: 30
