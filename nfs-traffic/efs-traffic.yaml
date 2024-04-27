@@ -5,7 +5,7 @@ metadata:
   labels:
     app: efs-traffic
 spec:
-  replicas: 9
+  replicas: 8
   selector:
     matchLabels:
       app: efs-traffic

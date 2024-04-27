@@ -43,7 +43,6 @@ def main():
                     file_to_read = random.choice(files)
                     with open(os.path.join(mount_path, file_to_read), 'r') as f:
                         content = f.read()
-        # sleep the process for particular time
         time.sleep(3)
 
 if __name__ == "__main__":

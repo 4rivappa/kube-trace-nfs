@@ -41,7 +41,7 @@ spec:
               readOnly: false
       containers:
         - name: kube-trace-nfs
-          image: 4rivappa/kube-trace-nfs:0.0.4
+          image: 4rivappa/kube-trace-nfs:0.1
           resources:
             requests:
               ephemeral-storage: "2Gi"
