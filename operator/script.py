@@ -6,6 +6,16 @@ from __future__ import print_function
 from bcc import BPF
 from time import strftime
 
+from prometheus_client import Gauge, start_http_server
+import socket
+
+node_name = socket.gethostname()
+read_bytes_metric = Gauge('nfs_read_bytes', 'NFS file read bytes per node', ['node_name'])
+write_bytes_metric = Gauge('nfs_write_bytes', 'NFS file write bytes per node', ['node_name'])
+
+start_http_server(8000)
+
+
 bpf_text = """
 #include <uapi/linux/ptrace.h>
 #include <linux/fs.h>
@@ -168,19 +178,33 @@ int trace_getattr_return(struct pt_regs *ctx){
 def print_event(cpu, data, size):
     event = b["events"].event(data)
 
-    type = 'R'
+    event_type = 'R'
     if event.event_type == 1:
-        type = 'W'
+        event_type = 'W'
+        if event.size == 0:
+            return
+        write_bytes_metric.labels(node_name).set(event.size)
+
     elif event.event_type == 2:
-        type = 'O'
+        event_type = 'O'
+        return
+        
     elif event.event_type == 3:
-        type = 'G'
+        event_type = 'G'
+        return
+
+    elif event.event_type == 0:
+        event_type = 'R'
+        if event.size == 0:
+            return
+        read_bytes_metric.labels(node_name).set(event.size)
+    
 
     print("%-8s %-14.14s %-6s %1s %-7s %-8d %7.2f %s" %
           (strftime("%H:%M:%S"),
            event.task.decode('utf-8', 'replace'),
            event.pid,
-           type,
+           event_type,
            event.size,
            event.file_offset / 1024,
            float(event.delta) / 1000,

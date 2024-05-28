@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         name: kube-trace-nfs
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+        prometheus.io/port: '8000'
     spec:
       initContainers:
         - name: init-headers
@@ -41,7 +45,11 @@ spec:
               readOnly: false
       containers:
         - name: kube-trace-nfs
-          image: 4rivappa/kube-trace-nfs:0.1
+          image: 4rivappa/kube-trace-nfs:0.2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: metrics
           resources:
             requests:
               ephemeral-storage: "2Gi"
