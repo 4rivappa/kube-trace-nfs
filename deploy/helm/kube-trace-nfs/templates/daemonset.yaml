@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.daemonset.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.daemonset.name }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Values.daemonset.selector.name }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.daemonset.template.name }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+        prometheus.io/port: '8000'
+    spec:
+      initContainers:
+        - name: {{ .Values.initcontainer.name }}
+          image: {{ .Values.initcontainer.image }}:{{ .Values.initcontainer.version }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+          volumeMounts:
+            {{- range .Values.initcontainer.volumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly }}
+            {{- end }}
+      containers:
+        - name: {{ .Values.container.name }}
+          image: {{ .Values.container.image }}:{{ .Values.container.version }}
+          imagePullPolicy: {{ .Values.container.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.container.port.portNumber }}
+              name: {{ .Values.container.port.name }}
+          resources:
+            requests:
+              ephemeral-storage: "2Gi"
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+          volumeMounts:
+            {{- range .Values.container.volumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly }}
+            {{- end }}
+      hostNetwork: true
+      hostPID: true
+      volumes:
+        {{- range .Values.volumes }}
+        - name: {{ .name }}
+          hostPath:
+            path: {{ .hostPath.path }}
+        {{- end }}

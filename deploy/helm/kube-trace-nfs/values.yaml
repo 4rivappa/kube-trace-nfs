@@ -1,0 +1,86 @@
+namespace: default
+
+daemonset:
+  name: kube-trace-nfs
+  selector:
+    name: kube-trace-nfs
+  template:
+    name: kube-trace-nfs
+
+initcontainer:
+  name: init-headers
+  image: 4rivappa/bcc-linux-headers
+  version: 0.1
+  volumeMounts:
+    - name: lsb-release
+      mountPath: /etc/lsb-release.host
+      readOnly: false
+    - name: os-release
+      mountPath: /etc/os-release.host
+      readOnly: false
+    - name: modules-dir
+      mountPath: /lib/modules
+      readOnly: false
+    - name: modules-host
+      mountPath: /lib/modules.host
+      readOnly: false
+    - name: linux-headers-generated
+      mountPath: /usr/src/
+      readOnly: false
+    - name: boot-host
+      mountPath: /boot.host
+      readOnly: false
+
+container:
+  name: kube-trace-nfs
+  image: 4rivappa/kube-trace-nfs
+  version: 0.3
+  imagePullPolicy: Always
+  port:
+    name: prometheus
+    portNumber: '8000'
+  volumeMounts:
+    - name: lsb-release
+      mountPath: /etc/lsb-release.host
+      readOnly: false
+    - name: os-release
+      mountPath: /etc/os-release.host
+      readOnly: false
+    - name: modules-dir
+      mountPath: /lib/modules
+      readOnly: false
+    - name: modules-host
+      mountPath: /lib/modules.host
+      readOnly: false
+    - name: linux-headers-generated
+      mountPath: /usr/src/
+      readOnly: false
+    - name: boot-host
+      mountPath: /boot.host
+      readOnly: false
+    - name: debug
+      mountPath: /sys/kernel/debug
+      readOnly: false
+
+volumes:
+  - name: lsb-release
+    hostPath:
+      path: /etc/lsb-release
+  - name: os-release
+    hostPath:
+      path: /etc/os-release
+  - name: modules-dir
+    hostPath:
+      path: /var/cache/linux-headers/modules_dir
+  - name: linux-headers-generated
+    hostPath:
+      path: /var/cache/linux-headers/generated
+  - name: boot-host
+    hostPath:
+      path: /boot
+  - name: modules-host
+    hostPath:
+      path: /lib/modules
+  - name: debug
+    hostPath:
+      path: /sys/kernel/debug
