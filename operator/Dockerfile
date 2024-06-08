@@ -22,9 +22,9 @@ RUN make
 RUN make install
 
 WORKDIR /usr/sbin/
-COPY script.py .
 
 RUN apt install python3-pip -y
 RUN pip install prometheus_client
 
+COPY script.py .
 CMD [ "python3", "./script.py" ]

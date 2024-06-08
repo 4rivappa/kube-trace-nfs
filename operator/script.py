@@ -1,17 +1,21 @@
-# modification of nfsslower.py from iovisor/bcc
-# reference: https://github.com/iovisor/bcc/blob/master/tools/nfsslower.py
-# This script was originally written by Samuel Nair (31-Aug-2017)
+# Modified version of nfsslower.py originally authored by Samuel Nair (31-Aug-2017)
+# Original script available at: https://github.com/iovisor/bcc/blob/master/tools/nfsslower.py
 
 from __future__ import print_function
 from bcc import BPF
 from time import strftime
 
-from prometheus_client import Gauge, start_http_server
+from prometheus_client import Gauge, start_http_server, Histogram
 import socket
 
 node_name = socket.gethostname()
+
 read_bytes_metric = Gauge('nfs_read_bytes', 'NFS file read bytes per node', ['node_name'])
 write_bytes_metric = Gauge('nfs_write_bytes', 'NFS file write bytes per node', ['node_name'])
+
+read_latency_metric = Histogram('nfs_read_latency', 'NFS file read latency', buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0], labelnames=['node_name'])
+write_latency_metric = Histogram('nfs_write_latency', 'NFS file write latency', buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0], labelnames=['node_name'])
+open_latency_metric = Histogram('nfs_open_latency', 'NFS file open latency', buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0], labelnames=['node_name'])
 
 start_http_server(8000)
 
@@ -178,27 +182,29 @@ int trace_getattr_return(struct pt_regs *ctx){
 def print_event(cpu, data, size):
     event = b["events"].event(data)
 
-    event_type = 'R'
-    if event.event_type == 1:
+    event_type = ''
+    if event.event_type == 0:
+        event_type = 'R'
+        if event.size != 0:
+            read_bytes_metric.labels(node_name).set(event.size)
+        if float(event.delta)/1000 > 0.001:
+            read_latency_metric.labels(node_name).observe(float(event.delta)/1000)
+    
+    elif event.event_type == 1:
         event_type = 'W'
-        if event.size == 0:
-            return
-        write_bytes_metric.labels(node_name).set(event.size)
+        if event.size != 0:
+            write_bytes_metric.labels(node_name).set(event.size)
+        if float(event.delta)/1000 > 0.001:
+            write_latency_metric.labels(node_name).observe(float(event.delta)/1000)
 
     elif event.event_type == 2:
         event_type = 'O'
-        return
-        
+        if float(event.delta)/1000 > 0.001:
+            open_latency_metric.labels(node_name).observe(float(event.delta)/1000)
+
     elif event.event_type == 3:
         event_type = 'G'
         return
-
-    elif event.event_type == 0:
-        event_type = 'R'
-        if event.size == 0:
-            return
-        read_bytes_metric.labels(node_name).set(event.size)
-    
 
     print("%-8s %-14.14s %-6s %1s %-7s %-8d %7.2f %s" %
           (strftime("%H:%M:%S"),
