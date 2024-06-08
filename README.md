@@ -29,4 +29,13 @@ Many cloud providers offer **storage through NFS protocol**, which can be attach
 
 The `nfs client` establishes a connection with the `nfs server` to furnish storage for pods, a process routed through kernel programs. `kube-trace-nfs` attaches `eBPF program` to nfs `kprobes` to capture metrics concerning events occurring within nfs clients. These metrics are stored in **eBPF maps** and undergo processing for event analysis. Events involving read, write, open, and getattr operations are forwarded to the user space component `kube-trace-nfs`. Subsequently, these values are exported to **Prometheus**, from where the data can be leveraged in various visualization tools such as **Grafana**.
 
+## Quick Installation
 
+Kube Trace NFS can be installed from GHCR using Helm
+
+```bash
+VERSION=${$(curl -sL https://api.github.com/repos/4rivappa/kube-trace-nfs/releases/latest | jq -r .name)#v}
+helm install kube-trace-nfs oci://ghcr.io/4rivappa/kube-trace-nfs --version $VERSION
+```
+
+After Helm install, you can access `nfs_read_bytes`, `nfs_write_bytes` metrics in prometheus
